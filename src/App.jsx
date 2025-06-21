@@ -143,6 +143,72 @@ function App() {
     }
   };
 
+  const getOrbStyles = () => {
+    const baseStyles = {
+      inner: {
+        background: '',
+        boxShadow: '',
+        animation: '',
+        transform: 'translate(-50%, -50%)',
+        width: '60px',
+        height: '60px'
+      },
+      outer: {
+        borderColor: '',
+        animation: '',
+        transform: 'translate(-50%, -50%)',
+        width: '120px',
+        height: '120px'
+      }
+    };
+
+    switch (status) {
+      case 'listening':
+        baseStyles.inner.background = 'radial-gradient(circle, rgba(74, 222, 128, 0.8), rgba(34, 197, 94, 0.4))';
+        baseStyles.inner.boxShadow = '0 0 30px rgba(74, 222, 128, 0.7), 0 0 60px rgba(74, 222, 128, 0.4)';
+        baseStyles.inner.animation = 'listeningPulse 1.5s ease-in-out infinite';
+        baseStyles.inner.width = '80px';
+        baseStyles.inner.height = '80px';
+        baseStyles.outer.borderColor = 'rgba(74, 222, 128, 0.4)';
+        baseStyles.outer.animation = 'fastRotate 8s linear infinite';
+        baseStyles.outer.width = '140px';
+        baseStyles.outer.height = '140px';
+        break;
+      
+      case 'processing':
+        baseStyles.inner.background = 'radial-gradient(circle, rgba(245, 158, 11, 0.8), rgba(217, 119, 6, 0.4))';
+        baseStyles.inner.boxShadow = '0 0 25px rgba(245, 158, 11, 0.6)';
+        baseStyles.inner.animation = 'processingPulse 3s ease-in-out infinite';
+        baseStyles.inner.width = '70px';
+        baseStyles.inner.height = '70px';
+        baseStyles.outer.borderColor = 'rgba(245, 158, 11, 0.3)';
+        baseStyles.outer.animation = 'slowRotate 15s linear infinite';
+        break;
+      
+      case 'responding':
+        baseStyles.inner.background = 'radial-gradient(circle, rgba(59, 130, 246, 0.8), rgba(30, 64, 175, 0.4))';
+        baseStyles.inner.boxShadow = '0 0 35px rgba(59, 130, 246, 0.7), 0 0 70px rgba(59, 130, 246, 0.3)';
+        baseStyles.inner.animation = 'respondingPulse 2s ease-in-out infinite';
+        baseStyles.inner.width = '75px';
+        baseStyles.inner.height = '75px';
+        baseStyles.outer.borderColor = 'rgba(59, 130, 246, 0.4)';
+        baseStyles.outer.animation = 'mediumRotate 10s linear infinite';
+        baseStyles.outer.width = '130px';
+        baseStyles.outer.height = '130px';
+        break;
+      
+      default:
+        baseStyles.inner.background = 'radial-gradient(circle, rgba(107, 114, 128, 0.6), rgba(75, 85, 99, 0.3))';
+        baseStyles.inner.boxShadow = '0 0 20px rgba(107, 114, 128, 0.4)';
+        baseStyles.inner.animation = 'idlePulse 4s ease-in-out infinite';
+        baseStyles.outer.borderColor = 'rgba(107, 114, 128, 0.2)';
+        baseStyles.outer.animation = 'simpleRotate 12s linear infinite';
+        break;
+    }
+
+    return baseStyles;
+  };
+
   const simulateVoiceCommand = (command) => {
     if (!command) return;
     
@@ -253,8 +319,14 @@ function App() {
       {/* Enhanced Pulsating Orb - only visible when no module is active */}
       {!currentModule && (
         <div className="pulsating-orb">
-          <div className="orb-inner"></div>
-          <div className="orb-outer"></div>
+          <div 
+            className="orb-inner" 
+            style={getOrbStyles().inner}
+          ></div>
+          <div 
+            className="orb-outer" 
+            style={getOrbStyles().outer}
+          ></div>
           <div className="orb-particles"></div>
         </div>
       )}

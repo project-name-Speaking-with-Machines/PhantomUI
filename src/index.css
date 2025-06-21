@@ -11,6 +11,7 @@ html, body, #root {
   background: #000;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 120%; /* Scale up the entire UI by 20% */
 }
 
 /* Pulse animation for logo */
@@ -188,45 +189,45 @@ input:focus {
 }
 
 .main-title {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
   font-weight: 300;
-  margin: 0 0 5px 0;
+  margin: 0 0 8px 0;
   background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   opacity: 0.9;
-  text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
 }
 
 .status-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 6px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  gap: 12px;
+  margin-top: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 8px 16px;
+  border-radius: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(15px);
   transition: all 0.3s ease;
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   animation: pulse 2s infinite;
-  box-shadow: 0 0 10px currentColor;
+  box-shadow: 0 0 15px currentColor;
 }
 
 .status-text {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.8rem;
-  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 /* Stop Button - Repositioned */
@@ -271,29 +272,20 @@ input:focus {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60px;
-  height: 60px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.7), rgba(30, 64, 175, 0.3));
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-  opacity: 0.8;
   will-change: opacity, transform;
-  animation: simplePulse 4s ease-in-out infinite;
+  transition: all 0.3s ease;
 }
 
 .orb-outer {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 120px;
-  height: 120px;
   border-radius: 50%;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-top: 1px solid rgba(79, 70, 229, 0.6);
+  border: 1px solid transparent;
+  border-top: 1px solid transparent;
   will-change: transform;
-  animation: simpleRotate 12s linear infinite;
+  transition: all 0.3s ease;
 }
 
 /* Transcript Display - Repositioned */
@@ -733,6 +725,102 @@ input:focus {
 }
 
 @keyframes simpleRotate {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* New dynamic orb animations */
+@keyframes listeningPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes processingPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+}
+
+@keyframes respondingPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes idlePulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+}
+
+@keyframes fastRotate {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes mediumRotate {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes slowRotate {
   0% {
     transform: translate(-50%, -50%) rotate(0deg);
   }

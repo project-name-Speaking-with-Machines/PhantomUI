@@ -740,3 +740,845 @@ input:focus {
     transform: translate(-50%, -50%) rotate(360deg);
   }
 }
+
+/* Add module overlay styles */
+.module-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(8, 8, 12, 0.9);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Common module styles */
+.pomodoro-container,
+.recipe-container,
+.flight-container {
+  position: relative;
+  background: rgba(20, 20, 30, 0.8);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  padding: 25px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  color: white;
+}
+
+/* Close button shared by all modules */
+.close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  z-index: 10;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Loading indicator shared by all modules */
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top: 3px solid rgba(59, 130, 246, 0.8);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.error-message {
+  text-align: center;
+  padding: 30px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Voice commands section shared by all modules */
+.voice-commands {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.9rem;
+}
+
+.voice-commands p {
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: rgba(59, 130, 246, 0.8);
+}
+
+.voice-commands ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.voice-commands li {
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Pomodoro Timer Styles */
+.pomodoro-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.pomodoro-header h2 {
+  font-size: 1.8rem;
+  margin: 0;
+  font-weight: 300;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.timer-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.time {
+  font-size: 6rem;
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: white;
+}
+
+.timer-progress {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.timer-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.timer-type-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.timer-type-btn {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 16px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timer-type-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: white;
+}
+
+.timer-action-controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.control-btn {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 20px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.control-btn.start {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.control-btn.pause {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.control-btn.reset {
+  background: rgba(107, 114, 128, 0.2);
+  border-color: rgba(107, 114, 128, 0.3);
+}
+
+/* Recipe Display Styles */
+.recipe-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.recipe-header h2 {
+  font-size: 2rem;
+  margin: 0 0 10px;
+  font-weight: 300;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.recipe-description {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.recipe-meta {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.meta-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.meta-value {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.recipe-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.ingredients-section h3, 
+.instructions-section h3 {
+  font-size: 1.2rem;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: 500;
+  color: rgba(59, 130, 246, 0.9);
+}
+
+.ingredients-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ingredients-list li {
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.ingredients-list li:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: rgba(59, 130, 246, 0.7);
+}
+
+.instructions-list {
+  padding-left: 25px;
+  margin: 0;
+}
+
+.instructions-list li {
+  margin-bottom: 12px;
+  padding-left: 5px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Flight Tracker Styles */
+.flight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.flight-number-info h2 {
+  font-size: 2rem;
+  margin: 0;
+  font-weight: 500;
+}
+
+.airline-name {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.flight-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.flight-status.on-time {
+  background: rgba(16, 185, 129, 0.2);
+  color: rgb(16, 185, 129);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.flight-status.delayed {
+  background: rgba(245, 158, 11, 0.2);
+  color: rgb(245, 158, 11);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.flight-status.in-air {
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(59, 130, 246);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.flight-status.boarding {
+  background: rgba(139, 92, 246, 0.2);
+  color: rgb(139, 92, 246);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.flight-map-container {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  margin: 25px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.flight-map {
+  width: 100%;
+  height: 100%;
+}
+
+.map-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  position: relative;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.map-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.flight-path {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.flight-path:before {
+  content: "";
+  position: absolute;
+  top: 40%;
+  left: 20%;
+  right: 30%;
+  border-top: 2px dashed rgba(59, 130, 246, 0.6);
+  transform: rotate(3deg);
+  z-index: 1;
+}
+
+.departure-point,
+.arrival-point {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.8);
+  z-index: 2;
+}
+
+.flight-position {
+  position: absolute;
+  font-size: 20px;
+  transform: translate(-50%, -50%) rotate(15deg);
+  z-index: 3;
+  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+}
+
+.departure-label,
+.arrival-label {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 6px;
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.flight-details {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.flight-route {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr;
+  gap: 15px;
+  padding: 20px 0;
+}
+
+.departure-details,
+.arrival-details {
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.departure-details h3,
+.arrival-details h3 {
+  font-size: 1rem;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: rgba(59, 130, 246, 0.9);
+}
+
+.airport-code {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.airport-name {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.airport-city {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.time-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.time {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.terminal-gate {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.flight-info-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.flight-time {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.flight-distance {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 15px;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.flight-position-info {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.flight-position-info h3 {
+  font-size: 1rem;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: 500;
+  color: rgba(59, 130, 246, 0.9);
+}
+
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+
+.position-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 3px;
+}
+
+.value {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .recipe-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .flight-route {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .flight-info-center {
+    order: -1;
+    margin-bottom: 15px;
+  }
+  
+  .position-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .time {
+    font-size: 5rem;
+  }
+}
+
+/* Identity response styles */
+.identity-response {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 20, 30, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  padding: 25px;
+  max-width: 600px;
+  width: 80%;
+  text-align: center;
+  color: white;
+  animation: fadeIn 0.3s ease-out;
+  z-index: 50;
+}
+
+.identity-response p {
+  font-size: 1.2rem;
+  line-height: 1.5;
+  margin: 0;
+  background: linear-gradient(135deg, #ffffff, #a3b9e0);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Modules help styles */
+.modules-help {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 20, 30, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  padding: 25px;
+  max-width: 600px;
+  width: 80%;
+  color: white;
+  animation: fadeIn 0.3s ease-out;
+  z-index: 50;
+}
+
+.modules-help h3 {
+  font-size: 1.4rem;
+  margin: 0 0 15px 0;
+  font-weight: 300;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  text-align: center;
+}
+
+.modules-help ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.modules-help li {
+  margin-bottom: 12px;
+  padding-left: 25px;
+  position: relative;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.modules-help li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: rgba(59, 130, 246, 0.8);
+  font-size: 1.2rem;
+}
+
+/* Add fadeIn animation for shared use */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Also add the spin animation for loading */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Debug Panel Styles */
+.debug-panel {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 8px;
+  padding: 15px;
+  color: white;
+  font-size: 0.9rem;
+  z-index: 1000;
+  max-width: 300px;
+}
+
+.debug-panel h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1rem;
+  color: rgba(59, 130, 246, 1);
+}
+
+.debug-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.debug-buttons button {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.debug-buttons button:hover {
+  background: rgba(59, 130, 246, 0.4);
+}
+
+.debug-info {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.debug-info p {
+  margin: 5px 0;
+}
+
+.voice-test {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 10px;
+}
+
+.voice-test h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: rgba(59, 130, 246, 0.8);
+}
+
+.voice-test-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.voice-test-buttons button {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.voice-test-buttons button:hover {
+  background: rgba(139, 92, 246, 0.4);
+}
+
+/* Recipe search form styles */
+.recipe-search-form {
+  display: flex;
+  margin: 15px 0;
+  width: 100%;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.recipe-search-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px 0 0 6px;
+  padding: 8px 12px;
+  color: white;
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.recipe-search-input:focus {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.recipe-search-button {
+  background: rgba(59, 130, 246, 0.6);
+  border: 1px solid rgba(59, 130, 246, 0.6);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  padding: 8px 15px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recipe-search-button:hover {
+  background: rgba(59, 130, 246, 0.8);
+}

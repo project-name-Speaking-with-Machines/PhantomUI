@@ -19,6 +19,51 @@ let audioContext = null;
 let analyser = null;
 let isProcessing = false;
 
+// Direct command handler for testing and debugging
+const handleDirectCommand = (command) => {
+  console.log(`Handling direct command: ${command}`);
+  
+  // Check for module activation commands
+  if (command.includes('pomodoro') || command.includes('timer')) {
+    return 'pomodoro';
+  }
+  
+  // Recipe commands with special handling
+  if (command.includes('recipe') || command.includes('food') || command.includes('how to make') || command.includes('how to cook')) {
+    // Try to extract the specific recipe query
+    const recipeMatch = command.match(/recipe for (.*)/i) || 
+                       command.match(/how (do I|to) (make|cook) (.*)/i) ||
+                       command.match(/show me (a|how to make) (.*)/i) ||
+                       command.match(/find (a|me) (.*) recipe/i);
+    
+    if (recipeMatch) {
+      const food = recipeMatch[recipeMatch.length - 1].trim();
+      console.log(`Extracted recipe query: "${food}"`);
+      
+      // Add the recipe query to URL parameters
+      const url = new URL(window.location.href);
+      url.searchParams.set('recipe', food);
+      window.history.replaceState({}, '', url);
+    }
+    
+    return 'recipe';
+  }
+  
+  if (command.includes('flight') || command.includes('track flight')) {
+    return 'flight';
+  }
+  
+  if (command.includes('wordle') || command.includes('word game')) {
+    return 'wordle';
+  }
+  
+  if (command.includes('weather') || command.includes('forecast')) {
+    return 'weather';
+  }
+  
+  return null;
+};
+
 export function useVoiceAgent() {
   const [isActive, setIsActive] = useState(false);
   const [status, setStatus] = useState('idle'); // idle, listening, processing, responding
@@ -237,6 +282,27 @@ export function useVoiceAgent() {
       }
 
       setLastTranscript(transcript);
+      
+      // Direct command handling for faster response (bypass LLM for obvious commands)
+      const directModule = handleDirectCommand(transcript.toLowerCase());
+      if (directModule) {
+        console.log(`Direct module activation: ${directModule}`);
+        setGeneratedUI(directModule);
+        
+        // Speak confirmation
+        const confirmations = {
+          'pomodoro': "Starting your pomodoro timer. You can control it using voice commands.",
+          'recipe': "Here's the recipe you asked for. You can ask for specific recipes using voice commands.",
+          'flight': "Opening the flight tracker. You can track specific flights using voice commands.",
+          'wordle': "Let's play Wordle. Try guessing the five letter word.",
+          'weather': "Here's the weather information you requested."
+        };
+        
+        await speakResponse(confirmations[directModule] || `Opening ${directModule}.`);
+        isProcessing = false;
+        setStatus('listening');
+        return;
+      }
 
       // Use LLM to detect if this is a real request/command
       const intentResponse = await openai.chat.completions.create({
@@ -421,50 +487,79 @@ Examples of NOT genuine requests:
   // Generate and speak UI using module registry
   const generateAndSpeakUI = async (originalCommand, uiType, specificUI) => {
     try {
-      console.log(`🎨 Generating UI for: "${originalCommand}"`);
+      console.log(`🎨 Generating UI for: "${originalCommand}" (type: ${uiType}, specific: ${specificUI})`);
       
-      // First, try to find module using the module registry
+      // Check if there's a direct module match from the registry
       const moduleMatch = findModuleByCommand(originalCommand);
       
       if (moduleMatch) {
-        const { moduleId, module } = moduleMatch;
-        console.log(`Found module: ${moduleId}`);
+        console.log(`Found module match: ${moduleMatch.moduleId}`);
+        setGeneratedUI(moduleMatch.moduleId);
         
-        setGeneratedUI(moduleId);
+        // Speak a confirmation
+        const moduleConfirmations = {
+          'wordle': "Let's play Wordle. Try guessing the five letter word.",
+          'weather': "Here's the weather information you requested.",
+          'pomodoro': "Starting your pomodoro timer. You can control it using voice commands.",
+          'recipe': "Here's the recipe you asked for.",
+          'flight': "Tracking your flight. Here are the details."
+        };
         
-        // Provide contextual voice feedback based on the module
-        switch (moduleId) {
-          case 'wordle':
-            await speakResponse("Perfect! I'm opening Wordle for you. It's a word guessing game where you try to guess a 5-letter word in 6 attempts. Use your keyboard to type letters and press Enter to submit your guess. Good luck!");
-            break;
-          case 'weather':
-            await speakResponse("I'm opening the weather module for you. Let me get the current weather information.");
-            break;
-          default:
-            await speakResponse(`I'm opening ${module.description} for you! Let me know if you need help.`);
-        }
+        const confirmation = moduleConfirmations[moduleMatch.moduleId] || `Opening ${moduleMatch.moduleId}.`;
+        await speakResponse(confirmation);
         
         return;
       }
       
-      // Fallback logic for backward compatibility
-      if (specificUI === 'wordle' || (uiType === 'game' && (specificUI === 'wordle' || !specificUI))) {
-        setGeneratedUI('wordle');
-        await speakResponse("Perfect! I'm opening Wordle for you. It's a word guessing game where you try to guess a 5-letter word in 6 attempts. Use your keyboard to type letters and press Enter to submit your guess. Good luck!");
-      } else if (uiType === 'game') {
-        // Default to wordle for any game request
-        setGeneratedUI('wordle');
-        await speakResponse(`Starting a word game for you! Try to guess the 5-letter word using your keyboard.`);
-      } else {
-        // For other UI types, show available options
-        const availableModules = getAllModules();
-        const moduleList = availableModules.map(mod => mod.description).join(', ');
-        await speakResponse(`I can help you with these: ${moduleList}. What would you like to try?`);
+      // If we get here, there was no direct module match, so try to infer from intent
+      console.log("No direct module match, trying to infer from intent...");
+      
+      // Check for specific UI types and map them to modules
+      if (uiType === 'timer' || specificUI === 'timer' || specificUI === 'pomodoro') {
+        console.log("Detected timer/pomodoro request");
+        setGeneratedUI('pomodoro');
+        await speakResponse("Starting your pomodoro timer. You can control it using voice commands.");
+        return;
       }
+      
+      if (uiType === 'recipe' || specificUI === 'recipe' || specificUI === 'food') {
+        console.log("Detected recipe request");
+        setGeneratedUI('recipe');
+        await speakResponse("Here's the recipe you asked for. You can ask for specific recipes using voice commands.");
+        return;
+      }
+      
+      if (uiType === 'flight' || specificUI === 'flight' || specificUI === 'tracker') {
+        console.log("Detected flight tracker request");
+        setGeneratedUI('flight');
+        await speakResponse("Opening the flight tracker. You can track specific flights using voice commands.");
+        return;
+      }
+      
+      if (uiType === 'game' || specificUI === 'wordle' || specificUI === 'game') {
+        console.log("Detected game/wordle request");
+        setGeneratedUI('wordle');
+        await speakResponse("Let's play Wordle. Try guessing the five letter word.");
+        return;
+      }
+      
+      if (uiType === 'weather' || specificUI === 'weather' || specificUI === 'forecast') {
+        console.log("Detected weather request");
+        setGeneratedUI('weather');
+        await speakResponse("Here's the weather information you requested.");
+        return;
+      }
+      
+      // If we still don't have a match, show available modules
+      console.log("No specific module detected, showing available options");
+      const availableModules = getAllModules();
+      const moduleList = availableModules.map(mod => mod.description).join(', ');
+      await speakResponse(`I can help you with these: ${moduleList}. What would you like to try?`);
       
     } catch (error) {
       console.error('Error generating UI:', error);
       await speakResponse("I'm sorry, I encountered an error generating the UI. Please try again.");
+      setStatus('listening');
     }
   };
 
@@ -643,6 +738,81 @@ Examples of NOT genuine requests:
     }
   }, [isActive, startListening]);
 
+  // Export speakMessage as a public function
+  const speakMessage = async (message) => {
+    if (!message) return;
+    return await speakResponse(message);
+  };
+
+  // Listen for debug set-module events
+  useEffect(() => {
+    const handleSetModule = (event) => {
+      if (event.detail && event.detail.moduleId) {
+        console.log(`Setting module from debug event: ${event.detail.moduleId}`);
+        setGeneratedUI(event.detail.moduleId);
+      }
+    };
+    
+    window.addEventListener('set-module', handleSetModule);
+    return () => window.removeEventListener('set-module', handleSetModule);
+  }, []);
+
+  // Check for module from body attribute on load (for debug persistence)
+  useEffect(() => {
+    const moduleFromAttr = document.querySelector('body').getAttribute('data-module');
+    if (moduleFromAttr) {
+      console.log(`Loading module from body attribute: ${moduleFromAttr}`);
+      setGeneratedUI(moduleFromAttr);
+      document.querySelector('body').removeAttribute('data-module');
+    }
+  }, []);
+
+  // Listen for simulated voice commands from the debug interface
+  useEffect(() => {
+    const handleVoiceCommand = (event) => {
+      if (!event.detail || !event.detail.transcript) return;
+      
+      const transcript = event.detail.transcript;
+      console.log(`Received simulated voice command: ${transcript}`);
+      
+      // Set the transcript
+      setLastTranscript(transcript);
+      
+      // Process the command directly
+      const directModule = handleDirectCommand(transcript.toLowerCase());
+      if (directModule) {
+        console.log(`Direct module activation from simulated command: ${directModule}`);
+        setGeneratedUI(directModule);
+        
+        // Speak confirmation
+        const confirmations = {
+          'pomodoro': "Starting your pomodoro timer. You can control it using voice commands.",
+          'recipe': "Here's the recipe you asked for. You can ask for specific recipes using voice commands.",
+          'flight': "Opening the flight tracker. You can track specific flights using voice commands.",
+          'wordle': "Let's play Wordle. Try guessing the five letter word.",
+          'weather': "Here's the weather information you requested."
+        };
+        
+        speakResponse(confirmations[directModule] || `Opening ${directModule}.`);
+      } else {
+        // Check for identity questions
+        if (isIdentityQuestion(transcript)) {
+          const responses = [
+            "I am Phantom, a voice-first interface designed to help you with minimal visual distractions.",
+            "I'm Phantom, your voice assistant. I can help with timers, recipes, games, weather, and tracking flights.",
+            "I'm your Phantom interface. I respond primarily to voice commands while keeping visual elements to a minimum."
+          ];
+          
+          const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+          speakResponse(randomResponse);
+        }
+      }
+    };
+    
+    window.addEventListener('voice-command', handleVoiceCommand);
+    return () => window.removeEventListener('voice-command', handleVoiceCommand);
+  }, []);
+
   return {
     isActive,
     status,
@@ -653,7 +823,8 @@ Examples of NOT genuine requests:
     toggleListening,
     startListening,
     stopListening,
-    closeUI
+    closeUI,
+    speakMessage
   };
 }
 

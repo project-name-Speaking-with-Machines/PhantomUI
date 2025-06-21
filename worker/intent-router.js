@@ -44,7 +44,74 @@ export default {
         intent = { module: 'weather', params: {} };
       }
       
-      // Letter guessing (5 letters)
+      // Pomodoro timer commands
+      else if (normalizedText.includes('pomodoro') || 
+               normalizedText.includes('timer') ||
+               normalizedText.includes('focus timer') ||
+               normalizedText.includes('set timer') ||
+               /\b\d+\s*minute(s)?\s*(timer)?\b/.test(normalizedText)) {
+        // Extract duration if present
+        const durationMatch = normalizedText.match(/\b(\d+)\s*minute(s)?\b/);
+        const duration = durationMatch ? parseInt(durationMatch[1]) : null;
+        
+        intent = { 
+          module: 'pomodoro', 
+          params: duration ? { minutes: duration } : {} 
+        };
+      }
+      
+      // Recipe commands
+      else if (normalizedText.includes('recipe') || 
+               normalizedText.includes('how to make') ||
+               normalizedText.includes('how to cook') ||
+               normalizedText.includes('food recipe') ||
+               normalizedText.includes('cooking')) {
+        // Try to extract the recipe request
+        let recipe = null;
+        
+        const recipeMatches = [
+          normalizedText.match(/recipe\s+for\s+(.+)/i),
+          normalizedText.match(/how\s+to\s+make\s+(.+)/i),
+          normalizedText.match(/how\s+to\s+cook\s+(.+)/i)
+        ];
+        
+        for (const match of recipeMatches) {
+          if (match && match[1]) {
+            recipe = match[1].trim();
+            break;
+          }
+        }
+        
+        intent = { 
+          module: 'recipe', 
+          params: recipe ? { food: recipe } : {} 
+        };
+      }
+      
+      // Flight tracker commands
+      else if (normalizedText.includes('flight') ||
+               normalizedText.includes('track flight') ||
+               normalizedText.includes('where is flight') ||
+               normalizedText.includes('flight status') ||
+               /\b[a-z]{2}\d{1,4}\b/i.test(normalizedText)) { // Airline code + flight number pattern
+        
+        // Try to extract flight number
+        const flightMatch = normalizedText.match(/\b([a-z]{2})(\d{1,4})\b/i);
+        let flightNumber = null;
+        
+        if (flightMatch) {
+          const airline = flightMatch[1].toUpperCase();
+          const number = flightMatch[2];
+          flightNumber = `${airline}${number}`;
+        }
+        
+        intent = { 
+          module: 'flight', 
+          params: flightNumber ? { flightNumber } : {} 
+        };
+      }
+      
+      // Letter guessing (5 letters - for Wordle)
       else if (/^[a-z]{5}$/i.test(normalizedText.replace(/\s/g, ''))) {
         intent = { module: 'wordle', params: { guess: normalizedText.replace(/\s/g, '') } };
       }
@@ -52,6 +119,15 @@ export default {
       // Single letter
       else if (/^[a-z]$/i.test(normalizedText)) {
         intent = { module: 'wordle', params: { letter: normalizedText } };
+      }
+      
+      // Help or identity questions
+      else if (normalizedText.includes('who are you') ||
+               normalizedText.includes('what are you') ||
+               normalizedText.includes('your name') ||
+               normalizedText.includes('what can you do') ||
+               normalizedText.includes('help me')) {
+        intent = { action: 'identity' };
       }
 
       // Control commands

@@ -1,9 +1,12 @@
 // Voice Agent Hook - Continuous listening with LLM intent detection
 import { useState, useEffect, useRef, useCallback } from 'react';
 import OpenAI from 'openai';
+import { findModuleByCommand, getAllModules } from '../modules/moduleRegistry';
+
+const openAIKey = import.meta.env.VITE_OPENAI_KEY;
 
 const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_KEY,
+  apiKey: openAIKey,
   dangerouslyAllowBrowser: true
 });
 
@@ -22,7 +25,9 @@ export function useVoiceAgent() {
   const [lastTranscript, setLastTranscript] = useState('');
   const [confidence, setConfidence] = useState(0);
   const [generatedUI, setGeneratedUI] = useState(null); // New state for dynamic UI
+  const [isSpeaking, setIsSpeaking] = useState(false); // New state for speaking status
   const audioRef = useRef(null);
+  const currentAudio = useRef(null);
 
   // Initialize audio context for user interaction requirement
   const initializeAudio = useCallback(async () => {
@@ -93,35 +98,8 @@ export function useVoiceAgent() {
       
       console.log('Using MIME type:', mimeType);
 
-      mediaRecorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined);
-
-      const audioChunks = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        if (audioChunks.length > 0) {
-          const audioBlob = new Blob(audioChunks, { type: mimeType || 'audio/webm' });
-          console.log('🎵 Audio blob created, size:', audioBlob.size);
-          await processAudioWithLLM(audioBlob);
-        }
-        
-        // Restart listening after processing
-        if (isListening && !isProcessing) {
-          setTimeout(() => {
-            if (isListening) {
-              startNextChunk();
-            }
-          }, 100);
-        }
-      };
-
       // Start voice activity detection loop
-      startVoiceActivityDetection();
+      startVoiceActivityDetection(mimeType);
       
     } catch (error) {
       console.error('❌ Error starting voice listening:', error);
@@ -131,15 +109,16 @@ export function useVoiceAgent() {
     }
   }, []);
 
-  // Voice activity detection with improved sensitivity
-  const startVoiceActivityDetection = () => {
+  // Voice activity detection with improved sensitivity and proper chunk management
+  const startVoiceActivityDetection = (mimeType) => {
     if (!analyser) return;
 
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
     let silenceStart = Date.now();
     let voiceDetected = false;
-    let recordingChunk = false;
+    let currentRecorder = null;
+    let currentAudioChunks = [];
 
     const detectVoice = () => {
       if (!isListening || isProcessing) {
@@ -157,25 +136,54 @@ export function useVoiceAgent() {
       const average = sum / bufferLength;
       
       // Voice detection threshold (adjusted for better sensitivity)
-      const VOICE_THRESHOLD = 25;
-      const SILENCE_DURATION = 1500; // 1.5 seconds of silence
-      const MIN_VOICE_DURATION = 300; // Minimum 300ms of voice
+      const VOICE_THRESHOLD = 30;
+      const SILENCE_DURATION = 2000; // 2 seconds of silence
+      const MIN_RECORDING_DURATION = 500; // Minimum 500ms recording
       
       if (average > VOICE_THRESHOLD) {
         if (!voiceDetected) {
           voiceDetected = true;
-          console.log('👄 Voice detected, starting recording...');
-          startRecordingChunk();
-          recordingChunk = true;
+          console.log('👄 Voice detected, starting new recording...');
+          
+          // Create a new MediaRecorder for this chunk
+          currentAudioChunks = []; // Reset chunks
+          currentRecorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined);
+          
+          currentRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              currentAudioChunks.push(event.data);
+            }
+          };
+
+          currentRecorder.onstop = async () => {
+            if (currentAudioChunks.length > 0) {
+              const audioBlob = new Blob(currentAudioChunks, { type: mimeType || 'audio/webm' });
+              console.log('🎵 Audio chunk completed, size:', audioBlob.size);
+              
+              // Only process if we have meaningful audio
+              if (audioBlob.size > 1000) { // At least 1KB of audio
+                await processAudioWithLLM(audioBlob);
+              }
+            }
+            // Clear the recorder reference
+            currentRecorder = null;
+            currentAudioChunks = [];
+          };
+          
+          try {
+            currentRecorder.start(100); // Collect data every 100ms
+            console.log('🟢 Started recording new chunk');
+          } catch (error) {
+            console.error('Error starting recording:', error);
+          }
         }
         silenceStart = Date.now();
       } else {
         // Check for end of speech
         if (voiceDetected && Date.now() - silenceStart > SILENCE_DURATION) {
-          if (recordingChunk && mediaRecorder && mediaRecorder.state === 'recording') {
+          if (currentRecorder && currentRecorder.state === 'recording') {
             console.log('🔇 Silence detected, stopping recording...');
-            mediaRecorder.stop();
-            recordingChunk = false;
+            currentRecorder.stop();
           }
           voiceDetected = false;
         }
@@ -185,30 +193,6 @@ export function useVoiceAgent() {
     };
 
     detectVoice();
-  };
-
-  // Start recording a new chunk
-  const startRecordingChunk = () => {
-    if (mediaRecorder && mediaRecorder.state === 'inactive' && !isProcessing) {
-      console.log('🟢 Started recording chunk');
-      try {
-        mediaRecorder.start(100); // Collect data every 100ms
-      } catch (error) {
-        console.error('Error starting recording:', error);
-      }
-    }
-  };
-
-  // Start next chunk for continuous listening
-  const startNextChunk = () => {
-    if (isListening && !isProcessing && mediaRecorder) {
-      // Small delay to prevent overlapping
-      setTimeout(() => {
-        if (isListening && !isProcessing) {
-          console.log('🔄 Ready for next voice input...');
-        }
-      }, 200);
-    }
   };
 
   // Process audio with LLM for intent detection
@@ -324,8 +308,7 @@ Examples of NOT genuine requests:
         
         // Generate and speak the actual response
         if (intentData.uiType) {
-          setGeneratedUI(intentData.uiType);
-          await generateAndSpeakUI(intentData.uiType, intentData.specificUI);
+          await generateAndSpeakUI(transcript, intentData.uiType, intentData.specificUI);
         } else {
           await generateAndSpeakResponse(transcript, intentData.intent);
         }
@@ -435,12 +418,36 @@ Examples of NOT genuine requests:
     }
   };
 
-  // Generate and speak UI
-  const generateAndSpeakUI = async (uiType, specificUI) => {
+  // Generate and speak UI using module registry
+  const generateAndSpeakUI = async (originalCommand, uiType, specificUI) => {
     try {
-      console.log(`🎨 Generating UI: ${uiType} - ${specificUI}`);
+      console.log(`🎨 Generating UI for: "${originalCommand}"`);
       
-      // Set the UI component based on the specific request
+      // First, try to find module using the module registry
+      const moduleMatch = findModuleByCommand(originalCommand);
+      
+      if (moduleMatch) {
+        const { moduleId, module } = moduleMatch;
+        console.log(`Found module: ${moduleId}`);
+        
+        setGeneratedUI(moduleId);
+        
+        // Provide contextual voice feedback based on the module
+        switch (moduleId) {
+          case 'wordle':
+            await speakResponse("Perfect! I'm opening Wordle for you. It's a word guessing game where you try to guess a 5-letter word in 6 attempts. Use your keyboard to type letters and press Enter to submit your guess. Good luck!");
+            break;
+          case 'weather':
+            await speakResponse("I'm opening the weather module for you. Let me get the current weather information.");
+            break;
+          default:
+            await speakResponse(`I'm opening ${module.description} for you! Let me know if you need help.`);
+        }
+        
+        return;
+      }
+      
+      // Fallback logic for backward compatibility
       if (specificUI === 'wordle' || (uiType === 'game' && (specificUI === 'wordle' || !specificUI))) {
         setGeneratedUI('wordle');
         await speakResponse("Perfect! I'm opening Wordle for you. It's a word guessing game where you try to guess a 5-letter word in 6 attempts. Use your keyboard to type letters and press Enter to submit your guess. Good luck!");
@@ -449,9 +456,10 @@ Examples of NOT genuine requests:
         setGeneratedUI('wordle');
         await speakResponse(`Starting a word game for you! Try to guess the 5-letter word using your keyboard.`);
       } else {
-        // For other UI types, we can expand later
-        setGeneratedUI('wordle'); // Default to wordle for now
-        await speakResponse(`I'm opening ${specificUI || 'a game'} for you! Let me know if you need help.`);
+        // For other UI types, show available options
+        const availableModules = getAllModules();
+        const moduleList = availableModules.map(mod => mod.description).join(', ');
+        await speakResponse(`I can help you with these: ${moduleList}. What would you like to try?`);
       }
       
     } catch (error) {
@@ -460,48 +468,120 @@ Examples of NOT genuine requests:
     }
   };
 
-  // Speak response using OpenAI TTS
+  // Improved TTS with OpenAI integration
   const speakResponse = async (text) => {
+    if (!text || text.trim() === '') return;
+    
     try {
-      console.log('Speaking:', text);
+      setStatus('responding');
+      setIsSpeaking(true);
       
-      const response = await openai.audio.speech.create({
-        model: 'tts-1',
-        voice: 'alloy',
-        input: text,
-        speed: 1.0
-      });
+      // Stop any current speech
+      if (currentAudio.current) {
+        currentAudio.current.pause();
+        currentAudio.current = null;
+      }
+      
+      console.log('🔊 Speaking:', text);
+      
+      // Try OpenAI TTS first
+      if (openAIKey) {
+        try {
+          const response = await fetch('https://api.openai.com/v1/audio/speech', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openAIKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'tts-1-hd', // Use high-quality model
+              input: text.substring(0, 4000), // Limit text length
+              voice: 'nova', // Natural female voice
+              response_format: 'mp3',
+              speed: 1.0 // Natural speed
+            }),
+          });
 
-      const audioBlob = new Blob([await response.arrayBuffer()], { type: 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(audioBlob);
+          if (response.ok) {
+            const audioData = await response.arrayBuffer();
+            const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            currentAudio.current = new Audio(audioUrl);
+            
+            currentAudio.current.onended = () => {
+              setIsSpeaking(false);
+              setStatus('listening');
+              URL.revokeObjectURL(audioUrl);
+              currentAudio.current = null;
+            };
+            
+            currentAudio.current.onerror = (error) => {
+              console.error('Audio playback error:', error);
+              fallbackToWebSpeech(text);
+            };
+            
+            await currentAudio.current.play();
+            console.log('🎵 OpenAI TTS playback started');
+            return;
+          }
+        } catch (error) {
+          console.warn('OpenAI TTS failed, falling back to Web Speech:', error);
+        }
+      }
       
-      const audio = new Audio(audioUrl);
-      audio.volume = 0.8;
-      
-      return new Promise((resolve) => {
-        audio.onended = () => {
-          URL.revokeObjectURL(audioUrl);
-          resolve();
-        };
-        
-        audio.onerror = (error) => {
-          console.error('Audio playback error:', error);
-          URL.revokeObjectURL(audioUrl);
-          resolve();
-        };
-        
-        audio.play().catch(console.error);
-      });
+      // Fallback to Web Speech API
+      fallbackToWebSpeech(text);
       
     } catch (error) {
-      console.error('Error speaking response:', error);
-      // Fallback to speech synthesis
-      return new Promise((resolve) => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.onend = resolve;
-        utterance.onerror = resolve;
-        speechSynthesis.speak(utterance);
-      });
+      console.error('Error in speech synthesis:', error);
+      setIsSpeaking(false);
+      setStatus('listening');
+    }
+  };
+
+  // Web Speech API fallback
+  const fallbackToWebSpeech = (text) => {
+    if ('speechSynthesis' in window) {
+      // Cancel any ongoing speech
+      speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Try to find a good voice
+      const voices = speechSynthesis.getVoices();
+      const preferredVoice = voices.find(voice => 
+        voice.name.includes('Google') || 
+        voice.name.includes('Microsoft') || 
+        voice.lang.startsWith('en')
+      );
+      
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+      
+      utterance.rate = 0.9; // Slightly slower
+      utterance.pitch = 1.0;
+      utterance.volume = 0.8;
+      
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setStatus('listening');
+        console.log('🎵 Web Speech TTS completed');
+      };
+      
+      utterance.onerror = (error) => {
+        console.error('Web Speech error:', error);
+        setIsSpeaking(false);
+        setStatus('listening');
+      };
+      
+      speechSynthesis.speak(utterance);
+      console.log('🎵 Web Speech TTS started');
+    } else {
+      console.warn('Speech synthesis not supported');
+      setIsSpeaking(false);
+      setStatus('listening');
     }
   };
 
@@ -569,9 +649,12 @@ Examples of NOT genuine requests:
     lastTranscript,
     confidence,
     generatedUI,
+    isSpeaking,
     toggleListening,
     startListening,
     stopListening,
     closeUI
   };
 }
+
+export default useVoiceAgent;

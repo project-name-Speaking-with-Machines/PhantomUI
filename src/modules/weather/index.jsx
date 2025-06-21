@@ -1,7 +1,6 @@
-import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
-import { speak } from "../../hooks/useTTS";
+import { useEffect, useState } from "react";
 
-const WeatherModule = forwardRef((props, ref) => {
+const WeatherModule = ({ onClose }) => {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -10,25 +9,6 @@ const WeatherModule = forwardRef((props, ref) => {
   useEffect(() => {
     loadWeatherData();
   }, []);
-
-  // Expose methods to parent component
-  useImperativeHandle(ref, () => ({
-    handleVoiceCommand: async (command) => {
-      const text = command.toLowerCase().trim();
-      
-      if (text.includes('refresh') || text.includes('update')) {
-        loadWeatherData();
-        return true;
-      }
-      
-      if (text.includes('forecast') || text.includes('tomorrow')) {
-        speak("I'm showing current weather only. For detailed forecasts, try a weather app.");
-        return true;
-      }
-
-      return false; // Command not handled
-    }
-  }));
 
   const loadWeatherData = async () => {
     setLoading(true);
@@ -88,12 +68,12 @@ const WeatherModule = forwardRef((props, ref) => {
         : '';
       const conditionText = getWeatherDescription(weatherInfo.weatherCode);
       
-      speak(tempText + feelsLikeText + conditionText);
+      // Removed speak function call
 
     } catch (err) {
       console.error('Weather error:', err);
       setError(err.message);
-      speak(`Sorry, I couldn't get weather information. ${err.message}`);
+      // Removed speak function call
     } finally {
       setLoading(false);
     }
@@ -157,7 +137,7 @@ const WeatherModule = forwardRef((props, ref) => {
             Try Again
           </button>
         </div>
-        <button style={closeButtonStyle} onClick={props.onClose}>
+        <button style={closeButtonStyle} onClick={onClose}>
           ✕ Close
         </button>
       </div>
@@ -202,12 +182,12 @@ const WeatherModule = forwardRef((props, ref) => {
         <div style={commandsStyle}>• "Close" to return to main screen</div>
       </div>
 
-      <button style={closeButtonStyle} onClick={props.onClose}>
+      <button style={closeButtonStyle} onClick={onClose}>
         ✕ Close
       </button>
     </div>
   );
-});
+};
 
 const containerStyle = {
   background: 'rgba(20, 20, 50, 0.95)',

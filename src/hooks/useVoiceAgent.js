@@ -57,7 +57,25 @@ const handleDirectCommand = (command) => {
     return 'wordle';
   }
   
+  // Weather commands with location extraction
   if (command.includes('weather') || command.includes('forecast')) {
+    // Try to extract location from the command
+    const locationMatch = command.match(/weather (in|at|for) ([a-zA-Z\s]+)/i) ||
+                         command.match(/what('s| is) the weather (in|at|for) ([a-zA-Z\s]+)/i) ||
+                         command.match(/how('s| is) the weather (in|at|for) ([a-zA-Z\s]+)/i);
+    
+    if (locationMatch) {
+      // Extract the location from the regex match
+      const locationIndex = locationMatch.length - 1;
+      const location = locationMatch[locationIndex].trim();
+      console.log(`Extracted weather location: "${location}"`);
+      
+      // Add the location to URL parameters
+      const url = new URL(window.location.href);
+      url.searchParams.set('location', location);
+      window.history.replaceState({}, '', url);
+    }
+    
     return 'weather';
   }
   

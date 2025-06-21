@@ -7,6 +7,8 @@ const RecipeDisplay = ({ onClose }) => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [initialLoad, setInitialLoad] = useState(true);
+  const [viewMode, setViewMode] = useState('standard'); // 'standard' or 'flashcard'
+  const [currentCard, setCurrentCard] = useState(0);
   
   // Initialize OpenAI client with the environment variable
   const openAIKey = import.meta.env.VITE_OPENAI_KEY;
@@ -140,17 +142,57 @@ const RecipeDisplay = ({ onClose }) => {
         } catch (parseError) {
           console.error('Error parsing recipe data:', parseError);
           
-          // Create a basic recipe from the text response
-          const basicRecipe = {
-            title: `Recipe for ${query}`,
-            description: `A delicious way to prepare ${query}.`,
-            ingredients: ["Please see instructions for ingredients"],
-            instructions: [responseText.replace(/```json|```/g, '').trim()],
-            prepTime: "15 minutes",
-            cookTime: "30 minutes",
-            servings: 4,
-            difficulty: "Medium"
-          };
+          // Try to extract useful information from the raw response
+          let basicRecipe;
+          
+          try {
+            // Try to extract JSON even with formatting issues
+            const cleanedText = responseText.replace(/```json|```/g, '').trim();
+            const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+            
+            if (jsonMatch) {
+              // Found something that looks like JSON
+              const extractedJson = jsonMatch[0];
+              console.log("Extracted JSON-like content:", extractedJson.substring(0, 50) + "...");
+              
+              try {
+                // Try to parse it
+                const parsedData = JSON.parse(extractedJson);
+                
+                // Use the parsed data with fallbacks
+                basicRecipe = {
+                  title: parsedData.title || `Recipe for ${query}`,
+                  description: parsedData.description || `A delicious ${query} recipe.`,
+                  ingredients: Array.isArray(parsedData.ingredients) ? parsedData.ingredients : [`Main ingredient: ${query}`],
+                  instructions: Array.isArray(parsedData.instructions) ? 
+                    // Clean up any JSON formatting in instructions
+                    parsedData.instructions.map(step => step.replace(/[\{\}",]/g, '').trim()) : 
+                    ["Follow standard cooking procedures for this dish"],
+                  prepTime: parsedData.prepTime || "15 minutes",
+                  cookTime: parsedData.cookTime || "30 minutes",
+                  servings: parsedData.servings || 4,
+                  difficulty: parsedData.difficulty || "Medium"
+                };
+              } catch (innerParseError) {
+                // Parsing the extracted JSON-like content failed
+                throw new Error("Failed to parse extracted JSON");
+              }
+            } else {
+              throw new Error("No JSON-like content found");
+            }
+          } catch (extractError) {
+            // Fallback if all parsing attempts fail
+            basicRecipe = {
+              title: `Recipe for ${query}`,
+              description: `A delicious way to prepare ${query}.`,
+              ingredients: [`Main ingredient: ${query}`, "Other ingredients as needed"],
+              instructions: ["Prepare ingredients", "Cook following standard methods", "Serve and enjoy!"],
+              prepTime: "15 minutes",
+              cookTime: "30 minutes",
+              servings: 4,
+              difficulty: "Medium"
+            };
+          }
           
           setRecipe(basicRecipe);
           setLoading(false);
@@ -314,25 +356,27 @@ const RecipeDisplay = ({ onClose }) => {
 
   // We're no longer showing error state, as we always provide a fallback recipe
 
-  return (
-    <div className="module-overlay">
-      <div className="recipe-container">
-        <button className="close-button" onClick={onClose}>✕</button>
-        
-        <div className="recipe-header">
+  // Function to navigate through flashcards
+  const navigateFlashcard = (direction) => {
+    if (direction === 'next') {
+      // Calculate total number of cards (ingredients + instructions)
+      const totalCards = (recipe?.ingredients?.length || 0) + (recipe?.instructions?.length || 0) + 1;
+      setCurrentCard((prev) => (prev + 1) % totalCards);
+    } else {
+      // Calculate total number of cards (ingredients + instructions)
+      const totalCards = (recipe?.ingredients?.length || 0) + (recipe?.instructions?.length || 0) + 1;
+      setCurrentCard((prev) => (prev - 1 + totalCards) % totalCards);
+    }
+  };
+
+  // Render flashcard content based on current card index
+  const renderFlashcardContent = () => {
+    // Card 0 is the title and meta info
+    if (currentCard === 0) {
+      return (
+        <div className="flashcard-content">
           <h2>{recipe?.title}</h2>
           <p className="recipe-description">{recipe?.description}</p>
-          
-          <form onSubmit={handleSearchSubmit} className="recipe-search-form">
-            <input 
-              type="text" 
-              name="recipeSearch" 
-              placeholder="Search for a recipe..." 
-              className="recipe-search-input"
-            />
-            <button type="submit" className="recipe-search-button">Search</button>
-          </form>
-          
           <div className="recipe-meta">
             <div className="meta-item">
               <span className="meta-label">Prep</span>
@@ -352,26 +396,132 @@ const RecipeDisplay = ({ onClose }) => {
             </div>
           </div>
         </div>
-        
-        <div className="recipe-content">
-          <div className="ingredients-section">
-            <h3>Ingredients</h3>
-            <ul className="ingredients-list">
-              {recipe?.ingredients.map((ingredient, index) => (
-                <li key={index}>{ingredient}</li>
-              ))}
-            </ul>
-          </div>
-          
-          <div className="instructions-section">
-            <h3>Instructions</h3>
-            <ol className="instructions-list">
-              {recipe?.instructions.map((step, index) => (
-                <li key={index}>{step}</li>
-              ))}
-            </ol>
-          </div>
+      );
+    }
+    
+    // Cards 1 to ingredients.length are ingredients
+    const ingredientsLength = recipe?.ingredients?.length || 0;
+    if (currentCard <= ingredientsLength) {
+      const ingredientIndex = currentCard - 1;
+      return (
+        <div className="flashcard-content">
+          <h3>Ingredient {currentCard} of {ingredientsLength}</h3>
+          <p className="flashcard-text">{recipe?.ingredients[ingredientIndex]}</p>
         </div>
+      );
+    }
+    
+    // Cards after ingredients are instructions
+    const instructionIndex = currentCard - ingredientsLength - 1;
+    return (
+      <div className="flashcard-content">
+        <h3>Step {instructionIndex + 1} of {recipe?.instructions?.length}</h3>
+        <p className="flashcard-text">{recipe?.instructions[instructionIndex]}</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="module-overlay">
+      <div className="recipe-container">
+        <button className="close-button" onClick={onClose}>✕</button>
+        
+        {/* View mode toggle */}
+        <div className="view-mode-toggle">
+          <button 
+            className={`view-mode-button ${viewMode === 'standard' ? 'active' : ''}`}
+            onClick={() => setViewMode('standard')}
+          >
+            Standard View
+          </button>
+          <button 
+            className={`view-mode-button ${viewMode === 'flashcard' ? 'active' : ''}`}
+            onClick={() => setViewMode('flashcard')}
+          >
+            Flashcard View
+          </button>
+        </div>
+        
+        {/* Search form */}
+        <form onSubmit={handleSearchSubmit} className="recipe-search-form">
+          <input 
+            type="text" 
+            name="recipeSearch" 
+            placeholder="Search for a recipe..." 
+            className="recipe-search-input"
+          />
+          <button type="submit" className="recipe-search-button">Search</button>
+        </form>
+        
+        {viewMode === 'standard' ? (
+          <>
+            <div className="recipe-header">
+              <h2>{recipe?.title}</h2>
+              <p className="recipe-description">{recipe?.description}</p>
+              
+              <div className="recipe-meta">
+                <div className="meta-item">
+                  <span className="meta-label">Prep</span>
+                  <span className="meta-value">{recipe?.prepTime}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Cook</span>
+                  <span className="meta-value">{recipe?.cookTime}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Serves</span>
+                  <span className="meta-value">{recipe?.servings}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Difficulty</span>
+                  <span className="meta-value">{recipe?.difficulty}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="recipe-content">
+              <div className="ingredients-section">
+                <h3>Ingredients</h3>
+                <ul className="ingredients-list">
+                  {recipe?.ingredients.map((ingredient, index) => (
+                    <li key={index}>{ingredient}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="instructions-section">
+                <h3>Instructions</h3>
+                <ol className="instructions-list">
+                  {recipe?.instructions.map((step, index) => (
+                    <li key={index}>{step}</li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flashcard-container">
+            {renderFlashcardContent()}
+            
+            <div className="flashcard-navigation">
+              <button 
+                className="flashcard-nav-button"
+                onClick={() => navigateFlashcard('prev')}
+              >
+                Previous
+              </button>
+              <span className="flashcard-counter">
+                Card {currentCard + 1} of {(recipe?.ingredients?.length || 0) + (recipe?.instructions?.length || 0) + 1}
+              </span>
+              <button 
+                className="flashcard-nav-button"
+                onClick={() => navigateFlashcard('next')}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
         
         <div className="voice-commands">
           <p>Voice commands:</p>
